@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "dgSpecHash": "rtSS7T8slGr5QCZ/GoPzzPPelmr3TGmPqfBjyLKCzDyFn5VyuYFVjTeNUy7LHODggwFP4W8N+0cVavc9+U0pNg==",
+  "success": true,
+  "projectFilePath": "F:\\VSProjsV2\\UIGL\\UIGL.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\kettl\\.nuget\\packages\\opentk\\4.7.5\\opentk.4.7.5.nupkg.sha512",
+    "C:\\Users\\kettl\\.nuget\\packages\\opentk.compute\\4.7.5\\opentk.compute.4.7.5.nupkg.sha512",
+    "C:\\Users\\kettl\\.nuget\\packages\\opentk.core\\4.7.5\\opentk.core.4.7.5.nupkg.sha512",
+    "C:\\Users\\kettl\\.nuget\\packages\\opentk.graphics\\4.7.5\\opentk.graphics.4.7.5.nupkg.sha512",
+    "C:\\Users\\kettl\\.nuget\\packages\\opentk.input\\4.7.5\\opentk.input.4.7.5.nupkg.sha512",
+    "C:\\Users\\kettl\\.nuget\\packages\\opentk.mathematics\\4.7.5\\opentk.mathematics.4.7.5.nupkg.sha512",
+    "C:\\Users\\kettl\\.nuget\\packages\\opentk.openal\\4.7.5\\opentk.openal.4.7.5.nupkg.sha512",
+    "C:\\Users\\kettl\\.nuget\\packages\\opentk.redist.glfw\\3.3.8.30\\opentk.redist.glfw.3.3.8.30.nupkg.sha512",
+    "C:\\Users\\kettl\\.nuget\\packages\\opentk.windowing.common\\4.7.5\\opentk.windowing.common.4.7.5.nupkg.sha512",
+    "C:\\Users\\kettl\\.nuget\\packages\\opentk.windowing.desktop\\4.7.5\\opentk.windowing.desktop.4.7.5.nupkg.sha512",
+    "C:\\Users\\kettl\\.nuget\\packages\\opentk.windowing.graphicslibraryframework\\4.7.5\\opentk.windowing.graphicslibraryframework.4.7.5.nupkg.sha512",
+    "C:\\Users\\kettl\\.nuget\\packages\\system.runtime.compilerservices.unsafe\\5.0.0\\system.runtime.compilerservices.unsafe.5.0.0.nupkg.sha512",
+    "C:\\Users\\kettl\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\3.1.31\\microsoft.netcore.app.host.win-x64.3.1.31.nupkg.sha512"
+  ],
+  "logs": []
+}
