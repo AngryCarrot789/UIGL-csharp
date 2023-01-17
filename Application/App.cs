@@ -95,56 +95,42 @@ namespace UIGL.Application {
                 throw new Exception("App started with no main window");
             }
 
-            if (this.mainWindow != null) {
-                this.mainWindow.MakeContextCurrent();
-                this.mainWindow.Show();
-            }
+            this.mainWindow.MakeContextCurrent();
+            this.mainWindow.Show();
 
             GL.Viewport(0, 0, this.mainWindow.Width, this.mainWindow.Height);
-
-            float w = this.mainWindow.Width, h = this.mainWindow.Height;
-            // Matrix4 cameraMatrix = Matrix4.CreatePerspectiveFieldOfView(90f * DEG_TO_RAD, w / h, 0.01f, 10f);
-            Matrix4 cameraMatrix = Matrix4.CreateOrthographic(w, h, 0f, 1f);
 
             long nextRun = 0L;
             long ticks = 0;
 
-            float offsetX = 0f;
-            float offsetY = 0f;
-            Matrix4 view = new Matrix4();
-
-            Shader shader = Shader.Builder().
-                                   LoadSource("F:\\VSProjsV2\\UIGL\\Assets\\Shaders", "main_shader.vert", "colour_shader.frag").
-                                   BindAttribLocation(0, "in_pos").
-                                   Build();
-
             unsafe {
-                GLFW.SetWindowRefreshCallback(this.mainWindow.Handle, hWnd => RenderApp());
-                GLFW.SetKeyCallback(this.mainWindow.Handle, (window, key, code, action, mods) => {
-                    switch (key) {
-                        case Keys.W: offsetY -= 0.005f; break;
-                        case Keys.S: offsetY += 0.005f; break;
-                        case Keys.A: offsetX -= 0.005f; break;
-                        case Keys.D: offsetX += 0.005f; break;
-                    }
-                });
+                GLFW.SetWindowRefreshCallback(this.mainWindow.Handle, hWnd => this.Render());
+                // GLFW.SetKeyCallback(this.mainWindow.Handle, (window, key, code, action, mods) => {
+                //     switch (key) {
+                //         case Keys.W: offsetY -= 0.005f; break;
+                //         case Keys.S: offsetY += 0.005f; break;
+                //         case Keys.A: offsetX -= 0.005f; break;
+                //         case Keys.D: offsetX += 0.005f; break;
+                //     }
+                // });
             }
+
+            GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
+
+            this.buffer = new FrameBuffer();
 
             try {
                 GLFW.PollEvents();
                 while (true) {
-                    GLFW.WaitEvents();
-                    // GLFW.PollEvents();
+                    // GLFW.WaitEvents();
+                    GLFW.PollEvents();
                     if (this.isMarkedForShutdown) {
                         break;
                     }
 
+                    Render();
+
                     this.Tick();
-
-                    view = Matrix4.LookAt(new Vector3(0, 0, 5f), new Vector3(0, 0, -1), Vector3.UnitY);
-
-                    RenderApp();
-
                     Thread.Yield();
                 }
             }
@@ -152,42 +138,36 @@ namespace UIGL.Application {
                 Console.WriteLine("Exception during main app tick: " + e);
             }
 
-            void RenderApp() {
-                ticks++;
-                if (DateTime.Now.Ticks > nextRun) {
-                    Console.WriteLine("Total ticks: " + ticks);
-                    nextRun = DateTime.Now.Ticks + TimeSpan.FromSeconds(1).Ticks;
-                }
-
-                GL.Clear(ClearBufferMask.ColorBufferBit);
-                GL.PushMatrix();
-                Matrix4 projection = Matrix4.CreateOrthographic(w, h, 0f, 1f);
-                Matrix4 mat = Matrix4.LookAt(new Vector3(0, 0, 1), new Vector3(0, 0, -1), new Vector3(0, 1, 0));
-
-                shader.SetUniformMatrix4("projection", projection);
-                shader.SetUniformMatrix4("view", mat);
-                shader.SetUniformVec4("in_colour", new Vector4(0.1f, 0.3f, 0.8f, 1f));
-                shader.Use();
-
-                GL.Begin(PrimitiveType.Quads);
-
-                // GL.Color3(0.1f, 0.3f, 0.8f);
-                GL.Vertex4(new Vector4(0 + 5f + offsetX, 0 - 5f  - offsetY, 0, 1));
-                GL.Vertex4(new Vector4(0 + 5f + offsetX, 0       - offsetY, 0, 1));
-                GL.Vertex4(new Vector4(0      + offsetX, 0       - offsetY, 0, 1));
-                GL.Vertex4(new Vector4(0      + offsetX, 0 - 5f  - offsetY, 0, 1));
-                // GL.Vertex4(new Vector4( 0.5f, -0.5f, 0, 1));
-                // GL.Vertex4(new Vector4( 0.0f,  0.5f, 0, 1));
-                // GL.Vertex4(new Vector4(-0.5f, -0.5f, 0, 1));
-                GL.End();
-
-                // DrawSquare(offsetX, offsetY, 50f, 50f);
-                GL.PopMatrix();
-
-                unsafe {
-                    GLFW.SwapBuffers(this.mainWindow.Handle);
-                }
-            }
+            // void RenderApp() {
+            //     ticks++;
+            //     if (DateTime.Now.Ticks > nextRun) {
+            //         Console.WriteLine("Total ticks: " + ticks);
+            //         nextRun = DateTime.Now.Ticks + TimeSpan.FromSeconds(1).Ticks;
+            //     }
+            //     GL.Clear(ClearBufferMask.ColorBufferBit);
+            //     GL.PushMatrix();
+            //     Matrix4 projection = Matrix4.CreateOrthographic(w, h, 0f, 1f);
+            //     Matrix4 mat = Matrix4.LookAt(new Vector3(0, 0, 1), new Vector3(0, 0, -1), new Vector3(0, 1, 0));
+            //     shader.SetUniformMatrix4("projection", projection);
+            //     shader.SetUniformMatrix4("view", mat);
+            //     shader.SetUniformVec4("in_colour", new Vector4(0.1f, 0.3f, 0.8f, 1f));
+            //     shader.Use();
+            //     GL.Begin(PrimitiveType.Quads);
+            //     // GL.Color3(0.1f, 0.3f, 0.8f);
+            //     GL.Vertex4(new Vector4(0 + 5f + offsetX, 0 - 5f  - offsetY, 0, 1));
+            //     GL.Vertex4(new Vector4(0 + 5f + offsetX, 0       - offsetY, 0, 1));
+            //     GL.Vertex4(new Vector4(0      + offsetX, 0       - offsetY, 0, 1));
+            //     GL.Vertex4(new Vector4(0      + offsetX, 0 - 5f  - offsetY, 0, 1));
+            //     // GL.Vertex4(new Vector4( 0.5f, -0.5f, 0, 1));
+            //     // GL.Vertex4(new Vector4( 0.0f,  0.5f, 0, 1));
+            //     // GL.Vertex4(new Vector4(-0.5f, -0.5f, 0, 1));
+            //     GL.End();
+            //     // DrawSquare(offsetX, offsetY, 50f, 50f);
+            //     GL.PopMatrix();
+            //     unsafe {
+            //         GLFW.SwapBuffers(this.mainWindow.Handle);
+            //     }
+            // }
 
             try {
                 this.Shutdown();
@@ -195,6 +175,44 @@ namespace UIGL.Application {
             catch (Exception e) {
                 Console.WriteLine("Failed to shutdown application: " + e);
             }
+        }
+
+        public Shader shader;
+        public FrameBuffer buffer;
+
+        public void Render() {
+            this.shader ??= Shader.Builder().
+                                   LoadSource("F:\\VSProjsV2\\UIGL\\Assets\\Shaders", "main_shader.vert", "colour_shader.frag").
+                                   BindAttribLocation(0, "in_pos").
+                                   BindAttribLocation(1, "in_colour").
+                                   Build();
+            // float w = this.mainWindow.Width, h = this.mainWindow.Height;
+            // Matrix4 cameraMatrix = Matrix4.CreatePerspectiveFieldOfView(90f * DEG_TO_RAD, w / h, 0.01f, 10f);
+            // Matrix4 camera = Matrix4.CreateOrthographic(w, h, 0f, 1f);
+
+            GL.Clear(ClearBufferMask.ColorBufferBit);
+
+            this.shader.Use();
+
+            // Matrix4 ortho = Matrix4.CreateOrthographic(this.mainWindow.Width, this.mainWindow.Height, 0f, 1f) * Matrix4.CreateScale(1f, -1f, 1f);
+            Matrix4 ortho = Matrix4.CreateOrthographicOffCenter(-this.mainWindow.Width, this.mainWindow.Width, this.mainWindow.Height, -this.mainWindow.Height, 0.001f, 1f) * Matrix4.CreateScale(2f);
+            ortho.Column3 = new Vector4(-1f, 1f, 0f, 1f);
+
+            this.shader.SetUniformMatrix4("projection", ortho);
+            this.shader.SetUniformMatrix4("view", Matrix4.Identity);
+            this.shader.SetUniformVec4("in_colour", new Vector4(0.1f, 0.3f, 0.8f, 1f));
+
+            // this.buffer.DrawTriangle();
+
+            this.buffer.BeginRender(this.mainWindow.Width, this.mainWindow.Height);
+            // this.buffer.DrawSquareAABB(10, 10, 110, 110);
+            this.buffer.DrawSquareAABB(250, 250, 250, 250);
+            // this.buffer.DrawTriangle();
+
+            unsafe {
+                GLFW.SwapBuffers(this.mainWindow.Handle);
+            }
+
         }
 
         private void Tick() {

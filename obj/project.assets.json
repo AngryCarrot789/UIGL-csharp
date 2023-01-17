@@ -19,27 +19,19 @@
       "OpenTK.Compute/4.7.5": {
         "type": "package",
         "compile": {
-          "lib/netcoreapp3.1/OpenTK.Compute.dll": {
-            "related": ".pdb;.xml"
-          }
+          "lib/netcoreapp3.1/OpenTK.Compute.dll": {}
         },
         "runtime": {
-          "lib/netcoreapp3.1/OpenTK.Compute.dll": {
-            "related": ".pdb;.xml"
-          }
+          "lib/netcoreapp3.1/OpenTK.Compute.dll": {}
         }
       },
       "OpenTK.Core/4.7.5": {
         "type": "package",
         "compile": {
-          "lib/netstandard2.1/OpenTK.Core.dll": {
-            "related": ".pdb;.xml"
-          }
+          "lib/netstandard2.1/OpenTK.Core.dll": {}
         },
         "runtime": {
-          "lib/netstandard2.1/OpenTK.Core.dll": {
-            "related": ".pdb;.xml"
-          }
+          "lib/netstandard2.1/OpenTK.Core.dll": {}
         }
       },
       "OpenTK.Graphics/4.7.5": {
@@ -49,27 +41,19 @@
           "OpenTK.Mathematics": "[4.7.5, 4.8.0)"
         },
         "compile": {
-          "lib/netcoreapp3.1/OpenTK.Graphics.dll": {
-            "related": ".pdb;.xml"
-          }
+          "lib/netcoreapp3.1/OpenTK.Graphics.dll": {}
         },
         "runtime": {
-          "lib/netcoreapp3.1/OpenTK.Graphics.dll": {
-            "related": ".pdb;.xml"
-          }
+          "lib/netcoreapp3.1/OpenTK.Graphics.dll": {}
         }
       },
       "OpenTK.Input/4.7.5": {
         "type": "package",
         "compile": {
-          "lib/netstandard2.0/OpenTK.Input.dll": {
-            "related": ".pdb;.xml"
-          }
+          "lib/netstandard2.0/OpenTK.Input.dll": {}
         },
         "runtime": {
-          "lib/netstandard2.0/OpenTK.Input.dll": {
-            "related": ".pdb;.xml"
-          }
+          "lib/netstandard2.0/OpenTK.Input.dll": {}
         }
       },
       "OpenTK.Mathematics/4.7.5": {
@@ -78,14 +62,10 @@
           "System.Runtime.CompilerServices.Unsafe": "5.0.0"
         },
         "compile": {
-          "lib/netcoreapp3.1/OpenTK.Mathematics.dll": {
-            "related": ".pdb;.xml"
-          }
+          "lib/netcoreapp3.1/OpenTK.Mathematics.dll": {}
         },
         "runtime": {
-          "lib/netcoreapp3.1/OpenTK.Mathematics.dll": {
-            "related": ".pdb;.xml"
-          }
+          "lib/netcoreapp3.1/OpenTK.Mathematics.dll": {}
         }
       },
       "OpenTK.OpenAL/4.7.5": {
@@ -95,14 +75,10 @@
           "OpenTK.Mathematics": "[4.7.5, 4.8.0)"
         },
         "compile": {
-          "lib/netcoreapp3.1/OpenTK.OpenAL.dll": {
-            "related": ".pdb;.xml"
-          }
+          "lib/netcoreapp3.1/OpenTK.OpenAL.dll": {}
         },
         "runtime": {
-          "lib/netcoreapp3.1/OpenTK.OpenAL.dll": {
-            "related": ".pdb;.xml"
-          }
+          "lib/netcoreapp3.1/OpenTK.OpenAL.dll": {}
         }
       },
       "OpenTK.redist.glfw/3.3.8.30": {
@@ -143,14 +119,10 @@
           "OpenTK.Mathematics": "[4.7.5, 4.8.0)"
         },
         "compile": {
-          "lib/netcoreapp3.1/OpenTK.Windowing.Common.dll": {
-            "related": ".pdb;.xml"
-          }
+          "lib/netcoreapp3.1/OpenTK.Windowing.Common.dll": {}
         },
         "runtime": {
-          "lib/netcoreapp3.1/OpenTK.Windowing.Common.dll": {
-            "related": ".pdb;.xml"
-          }
+          "lib/netcoreapp3.1/OpenTK.Windowing.Common.dll": {}
         }
       },
       "OpenTK.Windowing.Desktop/4.7.5": {
@@ -162,14 +134,10 @@
           "OpenTK.Windowing.GraphicsLibraryFramework": "[4.7.5, 4.8.0)"
         },
         "compile": {
-          "lib/netcoreapp3.1/OpenTK.Windowing.Desktop.dll": {
-            "related": ".pdb;.xml"
-          }
+          "lib/netcoreapp3.1/OpenTK.Windowing.Desktop.dll": {}
         },
         "runtime": {
-          "lib/netcoreapp3.1/OpenTK.Windowing.Desktop.dll": {
-            "related": ".pdb;.xml"
-          }
+          "lib/netcoreapp3.1/OpenTK.Windowing.Desktop.dll": {}
         }
       },
       "OpenTK.Windowing.GraphicsLibraryFramework/4.7.5": {
@@ -179,27 +147,19 @@
           "OpenTK.redist.glfw": "3.3.8.30"
         },
         "compile": {
-          "lib/netcoreapp3.1/OpenTK.Windowing.GraphicsLibraryFramework.dll": {
-            "related": ".pdb;.xml"
-          }
+          "lib/netcoreapp3.1/OpenTK.Windowing.GraphicsLibraryFramework.dll": {}
         },
         "runtime": {
-          "lib/netcoreapp3.1/OpenTK.Windowing.GraphicsLibraryFramework.dll": {
-            "related": ".pdb;.xml"
-          }
+          "lib/netcoreapp3.1/OpenTK.Windowing.GraphicsLibraryFramework.dll": {}
         }
       },
       "System.Runtime.CompilerServices.Unsafe/5.0.0": {
         "type": "package",
         "compile": {
-          "ref/netstandard2.1/System.Runtime.CompilerServices.Unsafe.dll": {
-            "related": ".xml"
-          }
+          "ref/netstandard2.1/System.Runtime.CompilerServices.Unsafe.dll": {}
         },
         "runtime": {
-          "lib/netcoreapp2.0/System.Runtime.CompilerServices.Unsafe.dll": {
-            "related": ".xml"
-          }
+          "lib/netcoreapp2.0/System.Runtime.CompilerServices.Unsafe.dll": {}
         }
       }
     }
@@ -458,23 +418,16 @@
           "net47",
           "net471",
           "net472",
-          "net48",
-          "net481"
+          "net48"
         ],
         "assetTargetFallback": true,
         "warn": true,
-        "downloadDependencies": [
-          {
-            "name": "Microsoft.NETCore.App.Host.win-x64",
-            "version": "[3.1.31, 3.1.31]"
-          }
-        ],
         "frameworkReferences": {
           "Microsoft.NETCore.App": {
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.100\\RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\5.0.415\\RuntimeIdentifierGraph.json"
       }
     }
   }

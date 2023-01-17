@@ -51,9 +51,7 @@ namespace UIGL.UI {
         }
 
         private unsafe void OnSizeChanged(Window* window, int w, int h) {
-            this.width = w;
-            this.height = h;
-            GL.Viewport(0, 0, w, h);
+            GL.Viewport(0, 0, this.width = w, this.height = h);
         }
 
         public static UIWindow Create(string title, int w, int h) {

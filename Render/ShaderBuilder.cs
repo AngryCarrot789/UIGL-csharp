@@ -45,9 +45,11 @@ namespace UIGL.Render {
 
             GL.GetShader(id, ShaderParameter.CompileStatus, out int isCompiled);
             if (isCompiled < 1) {
+                string err = GL.GetShaderInfoLog(id);
                 GL.ShaderSource(id, "");
                 GL.DeleteShader(id);
-                throw new Exception("Failed to compile shader: " + GL.GetShaderInfoLog(id));
+
+                throw new Exception("Failed to compile shader: " + err);
             }
 
             return id;

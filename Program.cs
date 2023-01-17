@@ -6,7 +6,7 @@ namespace UIGL {
         static void Main(string[] args) {
             App app = new App();
             app.Setup();
-            app.MainWindow = UIWindow.Create("MainWindow", 1024, 576);
+            app.MainWindow = UIWindow.Create("MainWindow", 500, 500);
             app.Start();
         }
     }
