@@ -1,37 +1,77 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
-using OpenTK.Graphics.OpenGL;
-using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using UIGL.Application.Dispatch;
-using UIGL.Render;
 using UIGL.UI;
-using UIGL.Utils;
 using ErrorCode = OpenTK.Windowing.GraphicsLibraryFramework.ErrorCode;
 
 namespace UIGL.Application {
+    /// <summary>
+    /// A class used for managing the application environment, e.g. windows and inputs
+    /// </summary>
     public class App {
-        private bool isSetup;
+        public static App Instance { get; }
 
-        private UIWindow mainWindow;
         private bool isRunning;
         private bool isMarkedForShutdown;
-        private int tick;
 
-        public UIWindow MainWindow {
-            get => this.mainWindow;
-            set => this.mainWindow = value;
+        private Action startCallback;
+
+        /// <summary>
+        /// A list of active windows
+        /// </summary>
+        public List<UIWindow> Windows { get; }
+        public ShutdownMode ShutdownMode { get; set; }
+        public Dispatcher Dispatcher { get; }
+
+        public Thread Thread { get; private set; }
+
+        /// <summary>
+        /// The current application's tick, which increments as time goes on.
+        /// <para>
+        /// This can be used to check if multiple dispatcher calls occurred on the same tick frame
+        /// </para>
+        /// </summary>
+        public uint Tick { get; private set; }
+
+        private App() {
+            this.Windows = new List<UIWindow>();
+            this.ShutdownMode = ShutdownMode.OnAllWindowsClosed;
+            this.Dispatcher = Dispatcher.Current;
         }
 
-        public App() {
-
+        static App() {
+            Instance = new App();
+            Instance.Setup();
         }
 
-        public void Setup() {
-            if (this.isSetup)
-                return;
-            this.isSetup = true;
+        public static UIWindow CreateWindow(string title, int width, int height) {
+            Instance.ValidateThread();
+            unsafe {
+                Window* ptr = GLFW.CreateWindow(width, height, title, null, null);
+                if (ptr == null) {
+                    throw new Exception("Failed to create window");
+                }
 
+                UIWindow window = new UIWindow(ptr) {Title = title, Width = width, Height = height};
+                Instance.Windows.Add(window);
+                return window;
+            }
+        }
+
+        private void ValidateThread() {
+            if (Thread.CurrentThread != this.Thread) {
+                throw new Exception("Illegal thread access");
+            }
+        }
+
+        public static void Wake() {
+            GLFW.PostEmptyEvent();
+        }
+
+        private void Setup() {
             GLFW.SetErrorCallback(OnGLFWError);
             if (!GLFW.Init()) {
                 throw new Exception("Unable to initialise GLFW");
@@ -48,127 +88,52 @@ namespace UIGL.Application {
 
         private void Shutdown() {
             this.isRunning = false;
+
+            foreach (UIWindow window in this.Windows) {
+                window.Close();
+                window.Dispose();
+            }
+
             GLFW.Terminate();
         }
 
-        public static void DrawSquare(float x, float y, float w, float h, ref Matrix4 cam) {
-            GL.Begin(PrimitiveType.Quads);
-
-            GL.Color3(0.1f, 0.3f, 0.8f);
-
-            //
-            // C ___ B
-            //  |   |
-            //  |___|
-            // D     A
-
-            GL.Vertex4(cam * new Vector4(x + w, y - h, 0, 1));
-            GL.Vertex4(cam * new Vector4(x + w, y,     0, 1));
-            GL.Vertex4(cam * new Vector4(x,     y,     0, 1));
-            GL.Vertex4(cam * new Vector4(x,     y - h, 0, 1));
-
-            GL.End();
-        }
-
-        public static void DrawSquare(float x, float y, float w, float h) {
-            GL.Begin(PrimitiveType.Quads);
-            GL.Color3(0.1f, 0.3f, 0.8f);
-            GL.Vertex4(new Vector4(x + w, y - h, 0, 1));
-            GL.Vertex4(new Vector4(x + w, y,     0, 1));
-            GL.Vertex4(new Vector4(x,     y,     0, 1));
-            GL.Vertex4(new Vector4(x,     y - h, 0, 1));
-            GL.End();
-        }
-
-        public const float DEG_TO_RAD = 3.14159265f / 180f; // 0.01745329F
-
-        public Matrix4 GetScreenMatrix() {
-            return new Matrix4();
-        }
-
-        public void Start() {
-            if (!this.isSetup) {
-                this.Setup();
-            }
-
-            if (this.mainWindow == null) {
-                throw new Exception("App started with no main window");
-            }
-
-            this.mainWindow.MakeContextCurrent();
-            this.mainWindow.Show();
-
-            GL.Viewport(0, 0, this.mainWindow.Width, this.mainWindow.Height);
-
-            long nextRun = 0L;
-            long ticks = 0;
-
-            unsafe {
-                GLFW.SetWindowRefreshCallback(this.mainWindow.Handle, hWnd => this.Render());
-                // GLFW.SetKeyCallback(this.mainWindow.Handle, (window, key, code, action, mods) => {
-                //     switch (key) {
-                //         case Keys.W: offsetY -= 0.005f; break;
-                //         case Keys.S: offsetY += 0.005f; break;
-                //         case Keys.A: offsetX -= 0.005f; break;
-                //         case Keys.D: offsetX += 0.005f; break;
-                //     }
-                // });
-            }
+        private void Run() {
+            // unsafe {
+            //     GLFW.SetWindowRefreshCallback(this.mainWindow.Handle, hWnd => this.Render());
+            // }
 
             // GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
             // GL.Enable(EnableCap.LineSmooth);
 
-            this.buffer = new FrameBuffer();
-
             try {
-                GLFW.PollEvents();
-                while (true) {
-                    // GLFW.WaitEvents();
+                this.Tick = 1;
+                this.startCallback?.Invoke();
+                this.isRunning = true;
+
+                this.TickApplication();
+                do {
                     GLFW.PollEvents();
                     if (this.isMarkedForShutdown) {
                         break;
                     }
 
-                    Render();
+                    this.TickApplication();
+                    foreach (UIWindow window in this.Windows.Where(window => window.IsOpen).ToList()) {
+                        if (window.ShouldClose()) {
+                            window.Dispose();
+                            continue;
+                        }
 
-                    this.Tick();
-                    Thread.Yield();
-                }
+                        window.MakeContextCurrent();
+                        window.RenderFrameFull();
+                    }
+
+                    Thread.Sleep(1);
+                } while (true);
             }
             catch (Exception e) {
                 Console.WriteLine("Exception during main app tick: " + e);
             }
-
-            // void RenderApp() {
-            //     ticks++;
-            //     if (DateTime.Now.Ticks > nextRun) {
-            //         Console.WriteLine("Total ticks: " + ticks);
-            //         nextRun = DateTime.Now.Ticks + TimeSpan.FromSeconds(1).Ticks;
-            //     }
-            //     GL.Clear(ClearBufferMask.ColorBufferBit);
-            //     GL.PushMatrix();
-            //     Matrix4 projection = Matrix4.CreateOrthographic(w, h, 0f, 1f);
-            //     Matrix4 mat = Matrix4.LookAt(new Vector3(0, 0, 1), new Vector3(0, 0, -1), new Vector3(0, 1, 0));
-            //     shader.SetUniformMatrix4("projection", projection);
-            //     shader.SetUniformMatrix4("view", mat);
-            //     shader.SetUniformVec4("in_colour", new Vector4(0.1f, 0.3f, 0.8f, 1f));
-            //     shader.Use();
-            //     GL.Begin(PrimitiveType.Quads);
-            //     // GL.Color3(0.1f, 0.3f, 0.8f);
-            //     GL.Vertex4(new Vector4(0 + 5f + offsetX, 0 - 5f  - offsetY, 0, 1));
-            //     GL.Vertex4(new Vector4(0 + 5f + offsetX, 0       - offsetY, 0, 1));
-            //     GL.Vertex4(new Vector4(0      + offsetX, 0       - offsetY, 0, 1));
-            //     GL.Vertex4(new Vector4(0      + offsetX, 0 - 5f  - offsetY, 0, 1));
-            //     // GL.Vertex4(new Vector4( 0.5f, -0.5f, 0, 1));
-            //     // GL.Vertex4(new Vector4( 0.0f,  0.5f, 0, 1));
-            //     // GL.Vertex4(new Vector4(-0.5f, -0.5f, 0, 1));
-            //     GL.End();
-            //     // DrawSquare(offsetX, offsetY, 50f, 50f);
-            //     GL.PopMatrix();
-            //     unsafe {
-            //         GLFW.SwapBuffers(this.mainWindow.Handle);
-            //     }
-            // }
 
             try {
                 this.Shutdown();
@@ -178,115 +143,40 @@ namespace UIGL.Application {
             }
         }
 
-        public Shader shader;
-        public FrameBuffer buffer;
-
-        public RenderContext context;
-
-        public void Render() {
-            GL.Clear(ClearBufferMask.ColorBufferBit);
-
-            this.context ??= new RenderContext();
-
-            GL.MatrixMode(MatrixMode.Projection);
-            GL.LoadIdentity();
-            GL.Ortho(0, this.mainWindow.Width, this.mainWindow.Height, 0, -1d, 1d);
-
-            GL.MatrixMode(MatrixMode.Modelview);
-            GL.LoadIdentity();
-
-            int x = 0;
-            int y = 0;
-            int size = 100;
-
-            GL.Begin(PrimitiveType.Quads);
-            GL.Vertex2(x + size, y + size);
-            GL.Vertex2(x + size, y);
-            GL.Vertex2(x, y);
-            GL.Vertex2(x, y + size);
-            GL.End();
-
-            // this.context.BeginFrame(this.mainWindow);
-            // this.context.DrawSquare(0, 0, 200, 75, Color4.Aqua);
-            // this.context.EndFrame();
-
-            unsafe {
-                GLFW.SwapBuffers(this.mainWindow.Handle);
+        private void TickApplication() {
+            this.Tick++;
+            this.Dispatcher.Process(Priority.ASAP);
+            this.Dispatcher.Process(Priority.AppTickPre);
+            if (this.ShutdownMode == ShutdownMode.OnAllWindowsClosed && this.Windows.Count == 0) {
+                this.MarkForShutdown();
             }
-
-            if (true) {
-                return;
+            else {
+                // do other shite
             }
-
-            this.shader ??= Shader.Builder().
-                                   LoadSource("F:\\VSProjsV2\\UIGL\\Assets\\Shaders", "main_shader.vert", "colour_shader.frag").
-                                   BindAttribLocation(0, "in_pos").
-                                   BindAttribLocation(1, "in_colour").
-                                   Build();
-            // float w = this.mainWindow.Width, h = this.mainWindow.Height;
-            // Matrix4 cameraMatrix = Matrix4.CreatePerspectiveFieldOfView(90f * DEG_TO_RAD, w / h, 0.01f, 10f);
-            // Matrix4 camera = Matrix4.CreateOrthographic(w, h, 0f, 1f);
-
-            GL.Clear(ClearBufferMask.ColorBufferBit);
-
-            this.shader.Use();
-
-            // Matrix4 ortho = Matrix4.CreateOrthographic(this.mainWindow.Width, this.mainWindow.Height, 0f, 1f) * Matrix4.CreateScale(1f, -1f, 1f);
-            Matrix4 ortho = Matrix4.CreateOrthographicOffCenter(-this.mainWindow.Width, this.mainWindow.Width, this.mainWindow.Height, -this.mainWindow.Height, 0.001f, 1f) * Matrix4.CreateScale(2f);
-            ortho.Column3 = new Vector4(-1f, 1f, 0f, 1f);
-
-            this.shader.SetUniformMatrix4("projection", ortho);
-            this.shader.SetUniformMatrix4("view", Matrix4.Identity);
-            this.shader.SetUniformVec4("in_colour", new Vector4(0.1f, 0.3f, 0.8f, 1f));
-
-            // this.buffer.DrawTriangle();
-
-            this.buffer.BeginRender(this.mainWindow.Width, this.mainWindow.Height);
-            // this.buffer.DrawSquareAABB(10, 10, 110, 110);
-            this.buffer.DrawSquareAABB(0, 0, 250, 250);
-            // this.buffer.DrawTriangle();
-
-            unsafe {
-                GLFW.SwapBuffers(this.mainWindow.Handle);
-            }
+            this.Dispatcher.Process(Priority.AppTickPost);
         }
-
-        private void Tick() {
-            if (++this.tick < 0) {
-                this.tick = 0;
-            }
-
-            Dispatcher.Current.Process(Priority.AppPre);
-
-            if (this.mainWindow != null) {
-                if (this.mainWindow.ShouldClose()) {
-                    this.MarkForShutdown();
-                    return;
-                }
-            }
-
-            Dispatcher.Current.Process(Priority.InputPre);
-            Dispatcher.Current.Process(Priority.InputPost);
-
-            Dispatcher.Current.Process(Priority.RenderPre);
-            Dispatcher.Current.Process(Priority.RenderPost);
-
-            Dispatcher.Current.Process(Priority.AppIdle);
-            Dispatcher.Current.Process(Priority.ContextIdle);
-            Dispatcher.Current.Process(Priority.AppPost);
-        }
-
-        public static void Wake() {
-            GLFW.PostEmptyEvent();
-        }
-
-        #region OpenGL
 
         private static void OnGLFWError(ErrorCode error, string description) {
             Console.WriteLine($"GLFW Error: {error}");
             Console.WriteLine(description);
         }
 
-        #endregion
+        /// <summary>
+        /// Starts the application, and calls the given callback function when it has started
+        /// <para>
+        /// This function returns only after the given callback is called
+        /// </para>
+        /// </summary>
+        public static void RunApplication(Action onStarted) {
+            App app = Instance;
+            app.startCallback = onStarted;
+
+            Thread thread = new Thread(app.Run);
+            app.Thread = thread;
+            thread.Name = "REghZy UIGL - Main Thread";
+            app.Thread.Start();
+
+            do { } while (!app.isRunning);
+        }
     }
 }

@@ -1,13 +1,20 @@
-﻿using UIGL.Application;
+﻿using System.Runtime.InteropServices.WindowsRuntime;
+using UIGL.Application;
 using UIGL.UI;
+using UIGL.UI.Core;
 
 namespace UIGL {
     class Program {
         static void Main(string[] args) {
-            App app = new App();
-            app.Setup();
-            app.MainWindow = UIWindow.Create("MainWindow", 500, 500);
-            app.Start();
+            App.RunApplication(() => {
+                UIWindow window = App.CreateWindow("MainWindow", 500, 500);
+                window.Content = new Rectangle() {
+                    Margin = new Thickness(10, 10, 0, 0),
+                    TargetWidth = 200,
+                    TargetHeight = 75
+                };
+                window.Show();
+            });
         }
     }
 }

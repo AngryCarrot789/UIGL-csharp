@@ -1,27 +1,39 @@
 ﻿using System;
+using System.Linq;
+using System.Net.Mime;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using UIGL.Application;
+using UIGL.Application.Dispatch;
+using UIGL.Application.Inputs;
 using UIGL.Render;
+using UIGL.UI.Core;
 
 namespace UIGL.UI {
-    public class UIWindow {
-        private readonly unsafe Window* handle;
-        private bool hasLoadedBindings;
+    public class UIWindow : IDisposable {
+        public bool isDirtyRender = true;
+        public bool isDirtyFullRender = true;
 
+        private readonly bool notInCtor;
+        private bool hasLoadedBindings;
         private string title;
         private int width;
         private int height;
 
-        public unsafe Window* Handle {
-            get => this.handle;
-        }
+        public Keyboard Keyboard { get; } = new Keyboard();
+        public unsafe Window* Handle { get; }
+
+        public Control Content { get; set; }
 
         public string Title {
             get => this.title;
             set {
-                unsafe {
-                    GLFW.SetWindowTitle(this.handle, this.title = value);
+                this.title = value;
+                if (this.notInCtor) {
+                    unsafe {
+                        GLFW.SetWindowTitle(this.Handle, value);
+                    }
                 }
             }
         }
@@ -29,8 +41,11 @@ namespace UIGL.UI {
         public int Width {
             get => this.width;
             set {
-                unsafe {
-                    GLFW.SetWindowSize(this.handle, this.width = value, this.height);
+                this.width = value;
+                if (this.notInCtor) {
+                    unsafe {
+                        GLFW.SetWindowSize(this.Handle, value, this.height);
+                    }
                 }
             }
         }
@@ -38,61 +53,83 @@ namespace UIGL.UI {
         public int Height {
             get => this.height;
             set {
-                unsafe {
-                    GLFW.SetWindowSize(this.handle, this.width, this.height = value);
+                this.height = value;
+                if (this.notInCtor) {
+                    unsafe {
+                        GLFW.SetWindowSize(this.Handle, this.width, value);
+                    }
                 }
             }
         }
 
-        public Matrix4 Perspective { get; private set; }
+        public bool IsOpen { get; private set; }
 
-        private unsafe UIWindow(Window* ptr) {
-            this.handle = ptr;
-            GLFW.SetWindowSizeCallback(this.handle, this.OnSizeChanged);
+        public unsafe UIWindow(Window* ptr) {
+            this.Handle = ptr;
+            this.MakeContextCurrent();
+            GLFW.SetWindowSizeCallback(ptr, this.OnSizeChanged);
+            GLFW.SetKeyCallback(ptr, this.OnKeyInput);
+
+            this.notInCtor = true;
         }
 
-        public void UpdatePerspective() {
-            Matrix4 ortho = Matrix4.CreateOrthographicOffCenter(-this.Width, this.Width, this.Height, -this.Height, 0.001f, 1f) * Matrix4.CreateScale(2f);
-            ortho.Column3 = new Vector4(-1f, 1f, 0f, 1f);
-            this.Perspective = ortho;
+        public void RenderFrameFull() {
+            Drawing.LoadOrthoMatrix2D(this.width, this.Height);
+
+            if (this.isDirtyRender) {
+                this.isDirtyRender = false;
+                if (this.isDirtyFullRender) {
+                    GL.Clear(ClearBufferMask.ColorBufferBit);
+                    this.isDirtyFullRender = false;
+                }
+
+                if (this.Content != null) {
+                    Control.Render(this.Content);
+                }
+
+                unsafe {
+                    GLFW.SwapBuffers(this.Handle);
+                }
+            }
         }
 
         private unsafe void OnSizeChanged(Window* window, int w, int h) {
             GL.Viewport(0, 0, this.width = w, this.height = h);
-            this.UpdatePerspective();
+            this.isDirtyRender = true;
+            this.isDirtyFullRender = true;
         }
 
-        public static UIWindow Create(string title, int w, int h) {
-            unsafe {
-                return Create(title, w, h, null, null);
+        private unsafe void OnKeyInput(Window* window, Keys key, int scancode, InputAction action, KeyModifiers mods) {
+            App.Instance.Dispatcher.Parameter1 = this;
+            try {
+                this.Keyboard.OnWindowInput(this, key, scancode, action, mods);
             }
-        }
-
-        public static unsafe UIWindow Create(string title, int w, int h, Monitor* monitor, Window* share) {
-            Window* ptr = GLFW.CreateWindow(w, h, title, monitor, share);
-            if (ptr == null) {
-                throw new Exception("Failed to create window");
+            finally {
+                App.Instance.Dispatcher.Parameter1 = null;
             }
-
-            UIWindow window = new UIWindow(ptr);
-            window.width = w;
-            window.height = h;
-            window.title = title;
-            window.UpdatePerspective();
-            return window;
         }
 
         public void MakeContextCurrent() {
             unsafe {
-                GLFW.MakeContextCurrent(this.handle);
+                GLFW.MakeContextCurrent(this.Handle);
                 this.EnsureLoadedBindings();
             }
         }
 
         public void Show() {
+            App.Instance.Dispatcher.Invoke(() => {
+                unsafe {
+                    this.MakeContextCurrent();
+                    GLFW.ShowWindow(this.Handle);
+                    this.IsOpen = true;
+                }
+            });
+        }
+
+        public void Close() {
             unsafe {
-                this.EnsureLoadedBindings();
-                GLFW.ShowWindow(this.handle);
+                GLFW.SetWindowShouldClose(this.Handle, true);
+                this.IsOpen = false;
             }
         }
 
@@ -101,13 +138,33 @@ namespace UIGL.UI {
                 return;
             }
 
-            GL.LoadBindings(new GLFWBindingsContext());
             this.hasLoadedBindings = true;
+            unsafe {
+                Window* previous = GLFW.GetCurrentContext();
+                if (previous != this.Handle)
+                    GLFW.MakeContextCurrent(this.Handle);
+
+                GL.LoadBindings(new GLFWBindingsContext());
+
+                if (previous != this.Handle)
+                    GLFW.MakeContextCurrent(previous);
+            }
         }
 
         public bool ShouldClose() {
             unsafe {
-                return GLFW.WindowShouldClose(this.handle);
+                return GLFW.WindowShouldClose(this.Handle);
+            }
+        }
+
+        public void Dispose() {
+            unsafe {
+                this.Close();
+                GLFW.SetWindowSizeCallback(this.Handle, null);
+                GLFW.SetKeyCallback(this.Handle, null);
+                GLFW.DestroyWindow(this.Handle);
+
+                App.Instance.Windows.Remove(this);
             }
         }
     }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Threading;
 
 namespace UIGL.Application.Dispatch {
@@ -10,28 +11,35 @@ namespace UIGL.Application.Dispatch {
         public static Dispatcher Current {
             get {
                 lock (MAP) {
-                    Thread current = Thread.CurrentThread;
-                    if (MAP.TryGetValue(current, out Dispatcher dispatcher)) {
+                    Thread thread = Thread.CurrentThread;
+                    if (MAP.TryGetValue(thread, out Dispatcher dispatcher)) {
                         return dispatcher;
                     }
 
-                    MAP[current] = dispatcher = new Dispatcher(current);
-                    return dispatcher;
+                    return MAP[thread] = new Dispatcher(thread);
                 }
             }
         }
 
-        private readonly DispatchQueue[] queues;
+        private readonly Dictionary<Priority, DispatchQueue> queues;
 
         public Thread Thread { get; }
+
+        public Object Parameter1 { get; set; }
+        public Object Parameter2 { get; set; }
+        public Object Parameter3 { get; set; }
+        public Object Parameter4 { get; set; }
 
         public bool IsOwningThread => Thread.CurrentThread == this.Thread;
 
         private Dispatcher(Thread thread) {
             this.Thread = thread;
-            this.queues = new DispatchQueue[PriorityNames.Length];
-            for (int i = 0; i < this.queues.Length; i++) {
-                this.queues[i] = new DispatchQueue();
+            this.queues = new Dictionary<Priority, DispatchQueue>();
+        }
+
+        private DispatchQueue GetQueue(Priority priority) {
+            lock (this.queues) {
+                return this.queues.TryGetValue(priority, out DispatchQueue queue) ? queue : this.queues[priority] = new DispatchQueue();
             }
         }
 
@@ -39,11 +47,22 @@ namespace UIGL.Application.Dispatch {
             App.Wake();
         }
 
-        public DispatcherOperation Invoke(Runnable runnable) {
-            return this.Invoke(runnable, Priority.AppPre);
+        public TResult InvokeFunction<TResult>(Func<TResult> getter) {
+            Wrapper<TResult> wrapper = new Wrapper<TResult>();
+            DispatcherOperation operation = this.Invoke(() => {
+                wrapper.Value = getter();
+            });
+
+            operation.WaitForCompletion();
+            operation.ValidateCompletionState();
+            return wrapper.Value;
         }
 
-        public DispatcherOperation Invoke(Runnable runnable, Priority priority) {
+        public DispatcherOperation Invoke(Action runnable) {
+            return this.Invoke(runnable, Priority.ASAP);
+        }
+
+        public DispatcherOperation Invoke(Action runnable, Priority priority) {
             DispatcherOperation operation = new DispatcherOperation(this, priority, runnable);
             this.Invoke(operation);
             return operation;
@@ -54,23 +73,28 @@ namespace UIGL.Application.Dispatch {
                 throw new ArgumentNullException(nameof(operation), "Operation cannot be null");
             }
 
-            DispatchQueue queue = this.queues[(int) operation.Priority];
-            if (queue != null) {
+            if (operation.Priority == Priority.ASAP && this.IsOwningThread) {
+                operation.Invoke();
+            }
+            else {
+                DispatchQueue queue = this.GetQueue(operation.Priority);
                 lock (queue) {
                     queue.Add(operation);
                 }
+
+                RequestProcessing();
             }
         }
 
         public void Process(Priority priority) {
-            DispatchQueue queue = this.queues[(int) priority];
-            if (queue != null) {
-                lock (queue) {
-                    if (queue.Count > 0) {
-                        foreach (DispatcherOperation operation in queue) {
-                            operation.Invoke();
-                        }
+            DispatchQueue queue = this.GetQueue(priority);
+            lock (queue) {
+                if (queue.Count > 0) {
+                    foreach (DispatcherOperation operation in queue) {
+                        operation.Invoke();
                     }
+
+                    queue.Clear();
                 }
             }
         }
