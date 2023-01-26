@@ -115,7 +115,8 @@ namespace UIGL.Application {
                 // });
             }
 
-            GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
+            // GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
+            // GL.Enable(EnableCap.LineSmooth);
 
             this.buffer = new FrameBuffer();
 
@@ -180,7 +181,43 @@ namespace UIGL.Application {
         public Shader shader;
         public FrameBuffer buffer;
 
+        public RenderContext context;
+
         public void Render() {
+            GL.Clear(ClearBufferMask.ColorBufferBit);
+
+            this.context ??= new RenderContext();
+
+            GL.MatrixMode(MatrixMode.Projection);
+            GL.LoadIdentity();
+            GL.Ortho(0, this.mainWindow.Width, this.mainWindow.Height, 0, -1d, 1d);
+
+            GL.MatrixMode(MatrixMode.Modelview);
+            GL.LoadIdentity();
+
+            int x = 0;
+            int y = 0;
+            int size = 100;
+
+            GL.Begin(PrimitiveType.Quads);
+            GL.Vertex2(x + size, y + size);
+            GL.Vertex2(x + size, y);
+            GL.Vertex2(x, y);
+            GL.Vertex2(x, y + size);
+            GL.End();
+
+            // this.context.BeginFrame(this.mainWindow);
+            // this.context.DrawSquare(0, 0, 200, 75, Color4.Aqua);
+            // this.context.EndFrame();
+
+            unsafe {
+                GLFW.SwapBuffers(this.mainWindow.Handle);
+            }
+
+            if (true) {
+                return;
+            }
+
             this.shader ??= Shader.Builder().
                                    LoadSource("F:\\VSProjsV2\\UIGL\\Assets\\Shaders", "main_shader.vert", "colour_shader.frag").
                                    BindAttribLocation(0, "in_pos").
@@ -206,13 +243,12 @@ namespace UIGL.Application {
 
             this.buffer.BeginRender(this.mainWindow.Width, this.mainWindow.Height);
             // this.buffer.DrawSquareAABB(10, 10, 110, 110);
-            this.buffer.DrawSquareAABB(250, 250, 250, 250);
+            this.buffer.DrawSquareAABB(0, 0, 250, 250);
             // this.buffer.DrawTriangle();
 
             unsafe {
                 GLFW.SwapBuffers(this.mainWindow.Handle);
             }
-
         }
 
         private void Tick() {

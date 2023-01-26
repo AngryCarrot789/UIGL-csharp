@@ -1,8 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using OpenTK.Graphics.OpenGL;
+using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using UIGL.Render;
 
 namespace UIGL.UI {
     public class UIWindow {
@@ -44,14 +44,22 @@ namespace UIGL.UI {
             }
         }
 
+        public Matrix4 Perspective { get; private set; }
+
         private unsafe UIWindow(Window* ptr) {
             this.handle = ptr;
-
             GLFW.SetWindowSizeCallback(this.handle, this.OnSizeChanged);
+        }
+
+        public void UpdatePerspective() {
+            Matrix4 ortho = Matrix4.CreateOrthographicOffCenter(-this.Width, this.Width, this.Height, -this.Height, 0.001f, 1f) * Matrix4.CreateScale(2f);
+            ortho.Column3 = new Vector4(-1f, 1f, 0f, 1f);
+            this.Perspective = ortho;
         }
 
         private unsafe void OnSizeChanged(Window* window, int w, int h) {
             GL.Viewport(0, 0, this.width = w, this.height = h);
+            this.UpdatePerspective();
         }
 
         public static UIWindow Create(string title, int w, int h) {
@@ -70,6 +78,7 @@ namespace UIGL.UI {
             window.width = w;
             window.height = h;
             window.title = title;
+            window.UpdatePerspective();
             return window;
         }
 

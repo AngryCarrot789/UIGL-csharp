@@ -1,23 +1,15 @@
-using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Text;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 
 namespace UIGL.Render {
     public class Shader {
         public int ProgramId { get; }
-        public int VertShaderId { get; }
-        public int FragShaderId { get; }
 
         private readonly Dictionary<string, int> uniforms;
 
-        internal Shader(int progId, int vertId, int fragId) {
+        internal Shader(int progId) {
             this.ProgramId = progId;
-            this.VertShaderId = vertId;
-            this.FragShaderId = fragId;
-
             this.uniforms = new Dictionary<string, int>();
         }
 

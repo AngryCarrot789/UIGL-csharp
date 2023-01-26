@@ -34,8 +34,7 @@ namespace UIGL.Render {
             GL.LinkProgram(this.progId);
             GL.DeleteShader(this.vertId);
             GL.DeleteShader(this.fragId);
-
-            return new Shader(this.progId, this.vertId, this.fragId);
+            return new Shader(this.progId);
         }
 
         private static int CompileShader(string code, ShaderType type) {
